@@ -21,12 +21,24 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 
 // NodeMCU uses 0x3F as the address
 // Set screen to width 16 and height 2
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
+HTTPClient http;
+WiFiClient wclient;
+
+char request[] =
+"{\n"
+"  stop(id: \"HSL:1291402\") {\n"
+"    name\n"
+"  }\n"
+"}\r\n";
 
 void setup(){
+    Serial.begin(9600);
+    
     lcd.begin();
     lcd.backlight();
 
@@ -51,6 +63,27 @@ void setup(){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Connected!");
+
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Connecting to");
+    lcd.setCursor(0, 1);
+    lcd.print("HSL...");
+
+    http.begin(wclient, "http://api.digitransit.fi/routing/v1/routers/hsl/index/graphql");
+    http.addHeader("Content-Type", "application/graphql");
+    int httpCode = http.POST(request);
+    String payload = http.getString();
+    Serial.println(httpCode);
+    Serial.println(payload);
+    http.end();
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Received data!");
+    lcd.setCursor(0, 1);
+    lcd.print("Check serial");
 }
 
 void loop(){
