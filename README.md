@@ -3,6 +3,8 @@
 Connecting to public transport APIs using a NodeMCU chip.
 
 Project developed for TitanHacks event 2020.
+Collaborative project with [PixelSergey](https://github.com/PixelSergey)
+and [Kartik](https://github.com/hax0kartik)
 
 ## Notes:
 - Run the command `git update-index --skip-worktree config.ino` to avoid committing
