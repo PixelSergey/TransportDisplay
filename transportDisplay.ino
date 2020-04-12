@@ -29,12 +29,26 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 HTTPClient http;
 WiFiClient wclient;
 
+// Request text easily converted to this format using https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
 char request[] =
 "{\n"
 "  stop(id: \"HSL:1291402\") {\n"
+"    gtfsId\n"
 "    name\n"
+"    stoptimesWithoutPatterns(numberOfDepartures: 1){\n"
+"      serviceDay\n"
+"      scheduledArrival\n"
+"      scheduledDeparture\n"
+"      realtimeArrival\n"
+"      realtimeDeparture\n"
+"      trip {\n"
+"        route {\n"
+"          shortName\n"
+"        }\n"
+"      }\n"
+"    }\n"
 "  }\n"
-"}\r\n";
+"}";
 
 void setup(){
     Serial.begin(9600);
