@@ -28,7 +28,9 @@
 // Set screen to width 16 and height 2
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 HTTPClient http;
+HTTPClient http2;
 WiFiClient wclient;
+WiFiClient wclient2;
 
 // Request text easily converted to this format using https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
 char request[] =
@@ -80,19 +82,20 @@ void setup(){
     lcd.print("Connected!");
 
     delay(1000);
+    
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Connecting to");
     lcd.setCursor(0, 1);
     lcd.print("HSL...");
 
-    http.begin(wclient, "http://api.digitransit.fi/routing/v1/routers/hsl/index/graphql");
-    http.addHeader("Content-Type", "application/graphql");
-    int httpCode = http.POST(request);
-    String payload = http.getString();
-    Serial.println(httpCode);
-    Serial.println(payload);
-    http.end();
+    http2.begin(wclient2, "http://api.digitransit.fi/routing/v1/routers/hsl/index/graphql");
+    http2.addHeader("Content-Type", "application/graphql");
+    int httpCode2 = http2.POST(request);
+    String payload2 = http2.getString();
+    Serial.println(httpCode2);
+    Serial.println(payload2);
+    http2.end();
 
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -102,7 +105,7 @@ void setup(){
 
     const size_t capacity = JSON_ARRAY_SIZE(1) + 4*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(6) + 200;
     DynamicJsonDocument doc(capacity);
-    const char* json = payload.c_str();
+    const char* json = payload2.c_str();
     deserializeJson(doc, json);
     JsonObject data_stop = doc["data"]["stop"];    
     JsonObject times = data_stop["stoptimesWithoutPatterns"][0];
@@ -121,8 +124,7 @@ void setup(){
 }
 
 void loop(){
-    /*
-    http.begin(wclient, "http://worldtimeapi.org/api/timezone");
+    http.begin(wclient, "http://worldtimeapi.org/api/ip");
     //http.addHeader("Accept", "application/json");
     //http.addHeader("Accept-Charset", "utf-8");
     int httpCode = http.GET();
@@ -130,6 +132,11 @@ void loop(){
     Serial.println(httpCode);
     Serial.println(payload);
     http.end();
+    const size_t capacity = JSON_OBJECT_SIZE(15) + 350;
+    DynamicJsonDocument doc(capacity);
+    const char* json = payload.c_str();
+    deserializeJson(doc, json);
+    long unixtime = doc["unixtime"];
+    Serial.println(unixtime);
     delay(3000);
-    */
 }
