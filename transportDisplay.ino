@@ -53,74 +53,84 @@ char request[] =
 "  }\n"
 "}";
 
-String getDataFromDigiTransit()
-{
+struct travelData{
+    long realArrival;
+    long scheduledArrival;
+    bool approximation;
+    String route;
+};
+
+String getDataFromDigiTransit(){
     http2.begin(wclient2, "http://api.digitransit.fi/routing/v1/routers/hsl/index/graphql");
     http2.addHeader("Content-Type", "application/graphql");
     int httpCode2 = http2.POST(request);
     String payload2 = http2.getString();
-    Serial.println(httpCode2);
-    Serial.println(payload2);
+    //Serial.println(httpCode2);
+    //Serial.println(payload2);
     http2.end();
     return payload2;
 }
 
-String getDataFromWorldtimeApi()
-{
+String getDataFromWorldtimeApi(){
     http.begin(wclient, "http://worldtimeapi.org/api/ip");
-    //http.addHeader("Accept", "application/json");
-    //http.addHeader("Accept-Charset", "utf-8");
     int httpCode = http.GET();
     String payload = http.getString();
-    Serial.println(httpCode);
-    Serial.println(payload);
+    //Serial.println(httpCode);
+    //Serial.println(payload);
     http.end();
     return payload;
 }
 
-void parseDigiTransitData(String payload)
-{
+struct travelData parseDigiTransitData(String payload){
     const size_t capacity = JSON_ARRAY_SIZE(1) + 4*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(6) + 200;
     DynamicJsonDocument doc(capacity);
     const char* json = payload.c_str();
     deserializeJson(doc, json);
     JsonObject data_stop = doc["data"]["stop"];    
     JsonObject times = data_stop["stoptimesWithoutPatterns"][0];
-    long serviceDay = times["serviceDay"]; // 1586638800
-    long scheduledArrival = times["scheduledArrival"]; // 41520
-    long scheduledDeparture = times["scheduledDeparture"]; // 41520
-    long realtimeArrival = times["realtimeArrival"]; // 41520
-    long realtimeDeparture = times["realtimeDeparture"]; // 41520
-    const char* route = times["trip"]["route"]["shortName"]; // "10"
+    
+    long serviceDay = times["serviceDay"];
+    long scheduledArrival = times["scheduledArrival"];
+    //long scheduledDeparture = times["scheduledDeparture"];
+    long realtimeArrival = times["realtimeArrival"];
+    //long realtimeDeparture = times["realtimeDeparture"];
+    const char* route = times["trip"]["route"]["shortName"];
     Serial.println(serviceDay);
     Serial.println(scheduledArrival);
-    Serial.println(scheduledDeparture);
+    //Serial.println(scheduledDeparture);
     Serial.println(realtimeArrival);
-    Serial.println(realtimeDeparture);
+    //Serial.println(realtimeDeparture);
     Serial.println(route);
+
+    struct travelData data;
+    data.realArrival = serviceDay + realtimeArrival;
+    data.scheduledArrival = serviceDay + scheduledArrival;
+    data.approximation = realtimeArrival != scheduledArrival;
+    data.route = String(route);
+
+    return data;
 }
 
-void parseWorldTimeData(String payload)
-{
+long parseWorldTimeData(String payload){
     const size_t capacity = JSON_OBJECT_SIZE(15) + 350;
     DynamicJsonDocument doc(capacity);
     const char* json = payload.c_str();
     deserializeJson(doc, json);
     long unixtime = doc["unixtime"];
     Serial.println(unixtime);
+    return unixtime;
 }
 
-void setup(){
-    Serial.begin(9600);
-    
-    lcd.begin();
-    lcd.backlight();
+int timeDifference(long endTime, long startTime){
+    return (int)((endTime - startTime) / 60);
+}
 
-    lcd.setCursor(0, 0);
-    lcd.print("Connecting to");
-    lcd.setCursor(0, 1);
-    lcd.print(WIFI_SSID);
-    
+int countDigits(int number){
+    if(number == 0) return 1;
+    return floor(log10(abs(number)) + 1);
+}
+
+void connectToWifi(){
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     
@@ -133,31 +143,52 @@ void setup(){
         if(i>=4) i=0;
         delay(400);
     }
+}
 
+void setup(){
+    Serial.begin(9600);
+    
+    lcd.begin();
+    lcd.backlight();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Connecting to");
+    lcd.setCursor(0, 1);
+    lcd.print(WIFI_SSID);
+
+    connectToWifi();
+    
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Connected!");
 
-    delay(1000);
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Connecting to");
-    lcd.setCursor(0, 1);
-    lcd.print("HSL...");
-
-    parseDigiTransitData(getDataFromDigitransit());
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Received data!");
-    lcd.setCursor(0, 1);
-    lcd.print("Check serial");
-
+    delay(3000);
 }
 
 void loop(){
-    parseWorldTimeData(getDataFromWorldtimeApi());
-    parseDigiTransitData(getDataFromDigitransit());
-    delay(3000);
+    long realtime = parseWorldTimeData(getDataFromWorldtimeApi());
+    struct travelData data = parseDigiTransitData(getDataFromDigiTransit());
+    Serial.println(realtime);
+    Serial.println(data.realArrival);
+    Serial.println(data.scheduledArrival);
+    Serial.println(data.approximation);
+    Serial.println(data.route);
+    
+    int dispTime = timeDifference(data.realArrival, realtime);
+    int digits = countDigits(dispTime);
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Tram No.");
+    lcd.setCursor(12, 0);
+    lcd.print("Time");
+    lcd.setCursor(0, 1);
+    lcd.print(data.route);
+    lcd.setCursor(16-digits, 1);
+    lcd.print(dispTime);
+    if(data.approximation){
+        lcd.setCursor(16-digits-1, 1);
+        lcd.print("~");
+    }
+    delay(15000);
 }
