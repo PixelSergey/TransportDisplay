@@ -22,12 +22,14 @@
 #include <LiquidCrystal_I2C.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include "rapidjson/document.h"
 
 // NodeMCU uses 0x3F as the address
 // Set screen to width 16 and height 2
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 HTTPClient http;
 WiFiClient wclient;
+rapidjson::Document doc;
 
 // Request text easily converted to this format using https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
 char request[] =
@@ -98,6 +100,22 @@ void setup(){
     lcd.print("Received data!");
     lcd.setCursor(0, 1);
     lcd.print("Check serial");
+    doc.Parse(json_str);
+    const Value& data = doc["data"];
+    const Value& stop = data["stop"];
+    String name = stop["name"].GetString();
+    Serial.println(name);
+    const Value& stoptimesWithoutPatterns = stop["stoptimesWithoutPatterns"];
+    int serviceDay = stoptimesWithoutPatterns[0]["serviceDay"].GetInt();
+    Serial.println(serviceDay); 
+    int scheduledArrival = stoptimesWithoutPatterns[0]["scheduledArrival"].GetInt();
+    Serial.println(scheduledArrival);
+    int realtimeArrival = stoptimesWithoutPatterns[0]["realtimeArrival"].GetInt();
+    Serial.println(realtimeArrival);
+    const Value& trip = stoptimesWithoutPatterns[0]["trip"];
+    const Value& route = trip["route"];
+    Serial.println(route["shortName"].GetString());
+
 }
 
 void loop(){
