@@ -18,3 +18,4 @@
 
 #define WIFI_SSID "SSID"
 #define WIFI_PASSWORD "PASSWORD"
+#define DIGITRANSIT_API_KEY "API_KEY"  // Obtained from https://digitransit.fi/en/developers/api-registration/
