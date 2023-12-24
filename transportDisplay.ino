@@ -63,6 +63,7 @@ struct travelData{
 String getDataFromDigiTransit(){
     http2.begin(wclient2, "http://api.digitransit.fi/routing/v1/routers/hsl/index/graphql");
     http2.addHeader("Content-Type", "application/graphql");
+    http2.addHeader("digitransit-subscription-key", DIGITRANSIT_API_KEY);
     int httpCode2 = http2.POST(request);
     String payload2 = http2.getString();
     //Serial.println(httpCode2);
